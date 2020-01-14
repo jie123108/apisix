@@ -1,0 +1,32 @@
+
+users:
+  super:
+    password: f585d710de881693af2b9856d9c2550c5c784dd3
+    roles:
+      - ROLE_SUPER
+  readonly:
+    password: f585d710de881693af2b9856d9c2550c5c784dd3
+    roles:
+      - ROLE_READONLY
+  admin:
+    password: f585d710de881693af2b9856d9c2550c5c784dd3
+    roles:
+      - ROLE_ADMIN
+roles:
+  ROLE_SUPER:
+    - PERM_GET_ALL
+    - PERM_POST_ALL
+    - USER_LIST
+    - USER_LIST4
+    - USER_ALL
+  ROLE_READONLY:
+    - PERM_GET_ALL
+  ROLE_ADMIN:
+    - PERM_POST_ALL
+
+routes:
+  - GET /* DENY_ALL
+  - ALL / ALLOW_ALL
+  - GET /api/user/list USER_LIST
+  - GET /api/user/list2 USER_LIST
+  - GET /api/user/* USER_ALL
