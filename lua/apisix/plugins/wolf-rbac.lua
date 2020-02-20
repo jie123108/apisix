@@ -240,14 +240,14 @@ function _M.rewrite(conf, ctx)
     if rbac_token == nil then
         core.log.info("no permission to access ",
                       core.json.delay_encode(permItem), ", need login!")
-        return 401, {message = "Missing rbac token in request"}
+        return 401, {ok = false, reason="ERR_TOKEN_INVALID", errmsg = "缺少token或token已经过期"}
     end
 
     local tokenInfo, err = parse_rbac_token(rbac_token)
     core.log.info("token info: ", core.json.delay_encode(tokenInfo),
                   ", err: ", err)
     if err then
-        return 401, {message = 'invalid rbac token: parse failed'}
+        return 401, {ok = false, reason="ERR_TOKEN_INVALID", errmsg = '非法的Token'}
     end
 
     local appid = tokenInfo.appid
@@ -257,7 +257,7 @@ function _M.rewrite(conf, ctx)
 
     local consumer_conf = consumer.plugin(plugin_name)
     if not consumer_conf then
-        return 401, {message = "Missing related consumer"}
+        return 401, {ok = false, reason = "ERR_SERVER_ERROR", errmsg = "出错啦, 找不到'consumer'"}
     end
 
     local consumers = core.lrucache.plugin(plugin_name, "consumers_key",
@@ -268,7 +268,7 @@ function _M.rewrite(conf, ctx)
     local consumer = consumers[appid]
     if not consumer then
         core.log.error("consumer [", appid, "] not found")
-        return 401, {message = "Invalid appid in rbac token"}
+        return 401, {ok = false, reason = "ERR_ARGS_INVALID", errmsg = "Invalid appid in rbac token"}
     end
     core.log.info("consumer: ", core.json.delay_encode(consumer))
     local server = consumer.auth_conf.server
@@ -304,7 +304,7 @@ function _M.rewrite(conf, ctx)
         core.log.error(" check_url_permission(",
             core.json.delay_encode(permItem),
             ") failed, res: ",core.json.delay_encode(res))
-        return 401, {message = res.err, username = username,
+        return 401, {ok = false, reason = res.err, username = username,
                      nickname = nickname}
     end
     core.log.info("wolf-rbac check permission passed")
@@ -330,10 +330,10 @@ end
 local function login()
     local args = get_args()
     if not args then
-        return core.response.exit(400, {message = "invalid request"})
+        return core.response.exit(400, {ok = false, reason = "参数错误"})
     end
     if not args.appid then
-        return core.response.exit(400, {message = "appid is missing"})
+        return core.response.exit(400, {ok = false, reason = "缺少appid"})
     end
 
     local appid = args.appid
@@ -352,7 +352,7 @@ local function login()
     if not consumer then
         core.log.info("request appid [", appid, "] not found")
         return core.response.exit(400,
-                {message = "appid [" .. tostring(appid) .. "] not found"}
+                {ok = false, reason = "appid [" .. tostring(appid) .. "] not found"}
                )
     end
 
@@ -374,7 +374,7 @@ local function login()
     if err or not res then
         core.log.error("login request [", request_debug, "] failed! err: ", err)
         return core.response.exit(500,
-                {message = "request to wolf-server failed! " .. tostring(err)})
+                {ok = false, reason = "ERR_SERVER_ERROR", errmsg = "request to wolf-server failed! " .. tostring(err)})
     end
     core.log.info("login request [", request_debug, "] status: ", res.status,
                   ", body: ", res.body)
@@ -384,7 +384,7 @@ local function login()
                        res.status)
         return core.response.exit(500,
             {
-                message = "request to wolf-server failed! status:"
+                ok = false, reason = "ERR_SERVER_ERROR", errmsg = "request to wolf-server failed! status:"
                           .. tostring(res.status)
             }
         )
@@ -392,12 +392,12 @@ local function login()
     local body, err = json.decode(res.body)
     if err or not body then
         core.log.error("login request [", request_debug, "] failed! err:", err)
-        return core.response.exit(500, {message = "request to wolf-server failed!"})
+        return core.response.exit(500, {ok = false, reason = "ERR_SERVER_ERROR", errmsg = "request to wolf-server failed!"})
     end
     if not body.ok then
         core.log.error("user login [", request_debug, "] failed! response body:",
                        core.json.delay_encode(body))
-        return core.response.exit(200, {message = body.reason})
+        return core.response.exit(200, {ok = false, reason = body.reason})
     end
     core.log.info("user login [", request_debug, "] success! response body:",
                   core.json.delay_encode(body))
