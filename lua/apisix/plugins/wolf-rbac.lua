@@ -240,14 +240,14 @@ function _M.rewrite(conf, ctx)
     if rbac_token == nil then
         core.log.info("no permission to access ",
                       core.json.delay_encode(permItem), ", need login!")
-        return 401, {ok = false, reason="ERR_TOKEN_INVALID", errmsg = "缺少token或token已经过期"}
+        return 401, {ok = false, reason="ERR_TOKEN_INVALID", errmsg = "Missing rbac token in request"}
     end
 
     local tokenInfo, err = parse_rbac_token(rbac_token)
     core.log.info("token info: ", core.json.delay_encode(tokenInfo),
                   ", err: ", err)
     if err then
-        return 401, {ok = false, reason="ERR_TOKEN_INVALID", errmsg = '非法的Token'}
+        return 401, {ok = false, reason="ERR_TOKEN_INVALID", errmsg = 'invalid rbac token: parse failed'}
     end
 
     local appid = tokenInfo.appid
@@ -257,7 +257,7 @@ function _M.rewrite(conf, ctx)
 
     local consumer_conf = consumer.plugin(plugin_name)
     if not consumer_conf then
-        return 401, {ok = false, reason = "ERR_SERVER_ERROR", errmsg = "出错啦, 找不到'consumer'"}
+        return 401, {ok = false, reason = "ERR_SERVER_ERROR", errmsg = "Missing related consumer"}
     end
 
     local consumers = core.lrucache.plugin(plugin_name, "consumers_key",
